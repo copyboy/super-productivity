@@ -1,6 +1,5 @@
 #!/bin/sh
 # Fork 开发环境一键配置(幂等,可重复运行)
-# 用途:配置 upstream remote 和 git sync-upstream 别名
 # 存放于 fork-setup 分支,不进 master、不进发往上游的 PR
 set -e
 cd "$(dirname "$0")/.."
@@ -32,5 +31,17 @@ git config alias.sync-upstream '!f() {
 }; f'
 echo "✔ 已配置 git sync-upstream 别名"
 
+# 3. 本地 Node 版本覆盖:.nvmrc 指到 24(上游为 22.x,但 Angular CLI 版本门槛
+#    在 22.22.3 以下会静默退出 0 导致空构建;24 已装且满足要求)
+#    skip-worktree 让这处本地改动对 git 隐身:不挡 sync-upstream,不混进 PR
+printf '24\n' > .nvmrc
+git update-index --skip-worktree .nvmrc
+echo "✔ .nvmrc 已指向 24 并设置 skip-worktree"
+
 echo
 echo "完成。日常在任何分支运行: git sync-upstream"
+echo "提示:"
+echo "  - 构建可能弄脏 package-lock.json / build/icon.icns(npm11 重写格式、图标再生成),"
+echo "    sync 前如报脏工作区,先 git restore 这两个文件再同步"
+echo "  - 以后要正式修改 .nvmrc(如上游 Node 版本变化),先:"
+echo "      git update-index --no-skip-worktree .nvmrc"
